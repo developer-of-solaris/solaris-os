@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOLARIS OS — Personal AI Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=5.0">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body id="app-body" class="bg-wallpaper-1">
+
+  <!-- Background Audio Element -->
+  <audio id="bg-audio" loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Main Dashboard Wrapper -->
+  <div class="dashboard-wrapper">
+    
+    <!-- Header Navigation -->
+    <header class="glass-panel nav-header">
+      <div class="brand-logo">
+        <h1>SOLARIS <span>OS</span></h1>
+      </div>
+      
+      <div class="nav-controls">
+        <!-- Wallpaper Changer Widget -->
+        <div class="wallpaper-controls">
+          <button class="glass-btn-sm" onclick="cycleWallpaper()">🖼️ Change BG</button>
+          <label class="glass-btn-sm custom-upload-btn">
+            📁 Upload BG
+            <input type="file" id="bg-file-input" accept="image/*" onchange="uploadCustomBg(event)" hidden>
+          </label>
+        </div>
+
+        <!-- Music Player Widget -->
+        <button id="music-btn" class="glass-btn-sm accent-btn" onclick="toggleMusic()">🎵 Play Lofi Beats</button>
+
+        <!-- FAQ Button -->
+        <button class="glass-btn-sm" onclick="openModal('faq-modal')">💡 Why Solaris?</button>
+
+        <div class="nav-status">
+          <span class="status-dot"></span> Online
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Workspace (Expanded with Mini-Games) -->
+    <main class="modules-grid">
+
+      <!-- AI Assistant Card -->
+      <div class="glass-card module-card" onclick="openModal('ai-modal')">
+        <div class="card-header">
+          <div class="card-icon">🤖</div>
+          <span class="card-badge">Live AI</span>
+        </div>
+        <h2>AI Companion</h2>
+        <p>Chat with your live neural assistant powered securely by Gemini.</p>
+        <div class="card-footer"><span class="action-link">Open Chat →</span></div>
+      </div>
+
+      <!-- Focus Timer Card -->
+      <div class="glass-card module-card" onclick="openModal('timer-modal')">
+        <div class="card-header">
+          <div class="card-icon">⏳</div>
+          <span class="card-badge">Pomodoro</span>
+        </div>
+        <h2>Focus Timer</h2>
+        <p>Track deep work flow sessions with customizable intervals.</p>
+        <div class="card-footer"><span class="action-link">Start Session →</span></div>
+      </div>
+
+      <!-- Task Manager Card -->
+      <div class="glass-card module-card" onclick="openModal('task-modal')">
+        <div class="card-header">
+          <div class="card-icon">📋</div>
+          <span class="card-badge">Productivity</span>
+        </div>
+        <h2>Task Manager</h2>
+        <p>Organize objectives and daily todos with local persistence.</p>
+        <div class="card-footer"><span class="action-link">Manage Tasks →</span></div>
+      </div>
+
+      <!-- Calculator Card -->
+      <div class="glass-card module-card" onclick="openModal('calc-modal')">
+        <div class="card-header">
+          <div class="card-icon">🔢</div>
+          <span class="card-badge">Utility</span>
+        </div>
+        <h2>Calculator</h2>
+        <p>Perform rapid math evaluations right inside your dashboard.</p>
+        <div class="card-footer"><span class="action-link">Launch Calc →</span></div>
+      </div>
+
+      <!-- Mini-Games Arcade Card -->
+      <div class="glass-card module-card" onclick="openModal('game-modal')">
+        <div class="card-header">
+          <div class="card-icon">🎮</div>
+          <span class="card-badge">Arcade</span>
+        </div>
+        <h2>Mini-Games & Chill</h2>
+        <p>Take a quick brain break with a speed clicker challenge.</p>
+        <div class="card-footer"><span class="action-link">Play Game →</span></div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. AI Assistant Modal -->
+  <div id="ai-modal" class="modal-overlay">
+    <div class="modal-content glass-panel">
+      <div class="chat-header">
+        <h3>🤖 AI Neural Companion</h3>
+        <button class="close-btn" onclick="closeModal('ai-modal')">✕</button>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="message ai">Hello explorer! Welcome to Solaris OS. How can I assist your workflow today? ✨</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chat-input" placeholder="Type a message or question...">
+        <button class="glass-btn accent-btn" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Focus Timer Modal -->
+  <div id="timer-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-small text-center">
+      <div class="modal-top">
+        <h3>⏳ Pomodoro Timer</h3>
+        <button class="close-btn" onclick="closeModal('timer-modal')">✕</button>
+      </div>
+      <div id="timer-display" class="timer-clock">25:00</div>
+      <div class="btn-group-center">
+        <button id="timer-toggle-btn" class="glass-btn accent-btn" onclick="toggleTimer()">Start</button>
+        <button class="glass-btn" onclick="resetTimer()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Task Manager Modal -->
+  <div id="task-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-medium">
+      <div class="modal-top">
+        <h3>📋 Task Manager</h3>
+        <button class="close-btn" onclick="closeModal('task-modal')">✕</button>
+      </div>
+      <div class="input-inline-group">
+        <input type="text" id="task-input" placeholder="Add a new task item...">
+        <button class="glass-btn accent-btn" onclick="addTask()">Add</button>
+      </div>
+      <div id="task-list" class="task-items-container"></div>
+    </div>
+  </div>
+
+  <!-- 4. Calculator Modal -->
+  <div id="calc-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-small">
+      <div class="modal-top">
+        <h3>🔢 Calculator</h3>
+        <button class="close-btn" onclick="closeModal('calc-modal')">✕</button>
+      </div>
+      <div id="calc-screen" class="calc-display-screen">0</div>
+      <div class="calc-grid-pad">
+        <button class="glass-btn btn-danger" onclick="clearCalc()">C</button>
+        <button class="glass-btn" onclick="appendCalc('/')">÷</button>
+        <button class="glass-btn" onclick="appendCalc('*')">×</button>
+        <button class="glass-btn" onclick="appendCalc('-')">-</button>
+        <button class="glass-btn" onclick="appendCalc('7')">7</button>
+        <button class="glass-btn" onclick="appendCalc('8')">8</button>
+        <button class="glass-btn" onclick="appendCalc('9')">9</button>
+        <button class="glass-btn" onclick="appendCalc('+')">+</button>
+        <button class="glass-btn" onclick="appendCalc('4')">4</button>
+        <button class="glass-btn" onclick="appendCalc('5')">5</button>
+        <button class="glass-btn" onclick="appendCalc('6')">6</button>
+        <button class="glass-btn accent-btn calc-equals" onclick="calculateResult()">=</button>
+        <button class="glass-btn" onclick="appendCalc('1')">1</button>
+        <button class="glass-btn" onclick="appendCalc('2')">2</button>
+        <button class="glass-btn" onclick="appendCalc('3')">3</button>
+        <button class="glass-btn calc-zero" onclick="appendCalc('0')">0</button>
+        <button class="glass-btn" onclick="appendCalc('.')">.</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Mini-Game Modal (Speed Clicker Challenge) -->
+  <div id="game-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-small text-center" style="text-align: center;">
+      <div class="modal-top">
+        <h3>🎮 Speed Clicker Challenge</h3>
+        <button class="close-btn" onclick="closeModal('game-modal')">✕</button>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Click the target as many times as you can in 10 seconds!</p>
+      
+      <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 14px; border: 1px solid var(--glass-border); margin-bottom: 1.25rem;">
+        <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">Score: <span id="game-score" style="font-weight: 700; color: #a855f7;">0</span></div>
+        <div style="font-size: 1.1rem;">Time Left: <span id="game-time" style="font-weight: 700; color: #38bdf8;">10s</span></div>
+      </div>
+
+      <div class="btn-group-center" style="flex-direction: column; gap: 0.75rem;">
+        <button id="game-target-btn" class="glass-btn accent-btn" onclick="clickTarget()" style="padding: 1.25rem; font-size: 1.1rem; width: 100%; display: none;">🎯 CLICK ME!</button>
+        <button id="game-start-btn" class="glass-btn" onclick="startGame()" style="width: 100%;">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. FAQ Modal -->
+  <div id="faq-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-medium" style="max-width: 650px;">
+      <div class="modal-top">
+        <h3>💡 Why Solaris OS & FAQ</h3>
+        <button class="close-btn" onclick="closeModal('faq-modal')">✕</button>
+      </div>
+      <div class="faq-container" style="display: flex; flex-direction: column; gap: 1rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem;">
+        
+        <div class="faq-item" style="background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+          <h4 style="color: #a855f7; margin-bottom: 0.3rem;">🌟 Why is Solaris OS so good?</h4>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">Solaris OS combines a distraction-free glassmorphic workspace with real-time AI assistance, ambient focus music, mini-games, and productivity tools all in one browser tab.</p>
+        </div>
+
+        <div class="faq-item" style="background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+          <h4 style="color: #a855f7; margin-bottom: 0.3rem;">🎵 How does the Lofi music work?</h4>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">Simply click the "Play Lofi Beats" button in the top navigation bar to stream ambient study tracks instantly while you work.</p>
+        </div>
+
+        <div class="faq-item" style="background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+          <h4 style="color: #a855f7; margin-bottom: 0.3rem;">🖼️ Can I customize my background?</h4>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">Yes! Use the "Change BG" button to cycle through aesthetic gradient themes or click "Upload BG" to set any image from your computer.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
