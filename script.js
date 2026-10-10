@@ -1,6 +1,6 @@
 // --- SOLARIS OS Main Engine ---
 
-let GEMINI_API_KEY = '';
+let GEMINI_API_KEY = 'AQ.Ab8RN6KlvICmmqpxBxvOfIwj9n9WybATB6DJ7LbMlppvliIMiA';
 
 // --- Wallpaper Manager ---
 let currentWallpaperIndex = 1;
@@ -35,6 +35,12 @@ function toggleMusic() {
   const audio = document.getElementById('bg-audio');
   const btn = document.getElementById('music-btn');
   if (!audio) return;
+
+  // Fallback default relaxing synth ambient stream if none set
+  if (!audio.src || audio.src === window.location.href) {
+    audio.src = 'https://stream.zeno.fm/f3wvbbqmdg8uv';
+    audio.load();
+  }
 
   if (!isMusicPlaying) {
     audio.play().then(() => {
@@ -137,7 +143,7 @@ async function sendChatMessage() {
   }
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=${apiKey.trim()}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -202,6 +208,9 @@ document.addEventListener('DOMContentLoaded', () => {
       audio.load();
     }
   }
+
+  // Load Tasks from LocalStorage
+  loadTasks();
 
   // Load Saved Rating
   const savedRating = localStorage.getItem('SOLARIS_RATING');
@@ -275,23 +284,50 @@ function updateCalcScreen() {
   if (screen) screen.innerText = calcDisplayValue;
 }
 
-// --- Focus Timer Logic ---
+// --- Flexible Custom Focus Timer Logic with Giant Ring ---
 let timerInterval = null;
-let timeLeft = 25 * 60;
+let totalInitialTime = 25 * 60;
+let timeLeft = 25 * 60; 
 let isTimerRunning = false;
+
+function applyCustomTimer() {
+  const hrsInput = document.getElementById('timer-hours-input');
+  const minsInput = document.getElementById('timer-mins-input');
+  if (!hrsInput || !minsInput) return;
+
+  const hrs = parseInt(hrsInput.value.trim(), 10) || 0;
+  const mins = parseInt(minsInput.value.trim(), 10) || 0;
+
+  clearInterval(timerInterval);
+  isTimerRunning = false;
+  
+  totalInitialTime = (hrs * 3600) + (mins * 60);
+  if (totalInitialTime <= 0) totalInitialTime = 1;
+  timeLeft = totalInitialTime;
+
+  updateTimerDisplay();
+  updateTimerProgressRing();
+
+  const btn = document.getElementById('timer-toggle-btn');
+  if (btn) btn.innerText = 'Start';
+}
 
 function toggleTimer() {
   const btn = document.getElementById('timer-toggle-btn');
   if (!isTimerRunning) {
+    if (timeLeft <= 0) applyCustomTimer();
     isTimerRunning = true;
     if (btn) btn.innerText = 'Pause';
+    
     timerInterval = setInterval(() => {
       if (timeLeft > 0) {
         timeLeft--;
         updateTimerDisplay();
+        updateTimerProgressRing();
       } else {
         clearInterval(timerInterval);
         isTimerRunning = false;
+        if (btn) btn.innerText = 'Start';
         alert('Focus session complete! 🎉');
       }
     }, 1000);
@@ -305,78 +341,388 @@ function toggleTimer() {
 function resetTimer() {
   clearInterval(timerInterval);
   isTimerRunning = false;
-  timeLeft = 25 * 60;
+  timeLeft = totalInitialTime;
   updateTimerDisplay();
+  updateTimerProgressRing();
   const btn = document.getElementById('timer-toggle-btn');
   if (btn) btn.innerText = 'Start';
 }
 
 function updateTimerDisplay() {
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+  const hrs = Math.floor(timeLeft / 3600);
+  const mins = Math.floor((timeLeft % 3600) / 60);
+  const secs = timeLeft % 60;
   const display = document.getElementById('timer-display');
   if (display) {
-    display.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    if (hrs > 0) {
+      display.innerText = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
   }
 }
 
-// --- Task Manager Logic ---
+function updateTimerProgressRing() {
+  const circle = document.getElementById('timer-progress-bar');
+  if (!circle) return;
+  const circumference = 880; // matches updated pathLength
+  const progress = timeLeft / totalInitialTime;
+  const offset = circumference - (progress * circumference);
+  circle.style.strokeDashoffset = offset;
+}
+// --- Robust Task Manager Logic with 2-Second Strike Animation ---
+function loadTasks() {
+  const taskList = document.getElementById('task-list');
+  if (!taskList) return;
+  taskList.innerHTML = '';
+  
+  const savedTasks = JSON.parse(localStorage.getItem('SOLARIS_TASKS') || '[]');
+  savedTasks.forEach((taskText, index) => {
+    renderTaskElement(taskText, index);
+  });
+}
+
 function addTask() {
   const input = document.getElementById('task-input');
-  const taskList = document.getElementById('task-list');
-  if (!input || !taskList) return;
+  if (!input) return;
   const taskText = input.value.trim();
-
   if (!taskText) return;
+
+  const savedTasks = JSON.parse(localStorage.getItem('SOLARIS_TASKS') || '[]');
+  savedTasks.push(taskText);
+  localStorage.setItem('SOLARIS_TASKS', JSON.stringify(savedTasks));
+
+  input.value = '';
+  loadTasks();
+}
+
+function completeTask(buttonElement, index) {
+  const taskItem = buttonElement.closest('.task-item');
+  if (!taskItem) return;
+
+  // Add strike-through effect and fade class
+  taskItem.classList.add('completed');
+  buttonElement.disabled = true;
+  buttonElement.innerText = '✓ Done';
+
+  // Wait 2 seconds, then remove from storage and DOM with fade out
+  setTimeout(() => {
+    taskItem.style.opacity = '0';
+    taskItem.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      let savedTasks = JSON.parse(localStorage.getItem('SOLARIS_TASKS') || '[]');
+      savedTasks.splice(index, 1);
+      localStorage.setItem('SOLARIS_TASKS', JSON.stringify(savedTasks));
+      loadTasks();
+    }, 300); // match fade transition
+  }, 2000); // 2 seconds delay
+}
+
+function renderTaskElement(taskText, index) {
+  const taskList = document.getElementById('task-list');
+  if (!taskList) return;
 
   const taskItem = document.createElement('div');
   taskItem.className = 'task-item';
   taskItem.innerHTML = `
-    <span>${taskText}</span>
-    <button class="glass-btn-sm" onclick="this.parentElement.remove()">Done</button>
+    <span class="task-text">${taskText}</span>
+    <button class="glass-btn-sm" onclick="completeTask(this, ${index})">Done</button>
   `;
-  
   taskList.appendChild(taskItem);
-  input.value = '';
 }
 
-// --- Mini-Game Logic (Speed Clicker) ---
-let gameScore = 0;
-let gameTimeLeft = 10;
-let gameInterval = null;
-let isGameActive = false;
 
-function startGame() {
-  const targetBtn = document.getElementById('game-target-btn');
-  const startBtn = document.getElementById('game-start-btn');
+
+
+// =======================================================
+// SOLARIS OS Window & Starfighter Vanguard Arcade Engine
+// =======================================================
+
+function openArcadeWindow() {
+  const windowEl = document.getElementById('arcade-window');
+  if (!windowEl) return;
+  windowEl.style.display = 'flex';
+  setTimeout(() => {
+    windowEl.classList.add('active');
+  }, 10);
+}
+
+function closeArcadeWindow() {
+  const windowEl = document.getElementById('arcade-window');
+  if (!windowEl) return;
   
-  gameScore = 0;
-  gameTimeLeft = 10;
-  isGameActive = true;
+  windowEl.classList.remove('active');
   
-  document.getElementById('game-score').innerText = gameScore;
-  document.getElementById('game-time').innerText = gameTimeLeft + 's';
+  spaceGameActive = false;
+  if (spaceGameInterval) clearInterval(spaceGameInterval);
+  spaceGameInterval = null;
 
-  startBtn.style.display = 'none';
-  targetBtn.style.display = 'block';
+  window.removeEventListener('keydown', handleSpaceInput);
+  window.removeEventListener('keyup', handleSpaceInput);
 
-  gameInterval = setInterval(() => {
-    gameTimeLeft--;
-    document.getElementById('game-time').innerText = gameTimeLeft + 's';
+  setTimeout(() => {
+    windowEl.style.display = 'none';
+    const overlay = document.getElementById('arcade-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  }, 250);
+}
 
-    if (gameTimeLeft <= 0) {
-      clearInterval(gameInterval);
-      isGameActive = false;
-      targetBtn.style.display = 'none';
-      startBtn.style.display = 'block';
-      startBtn.innerText = 'Play Again';
-      alert(`Game Over! Your final score is ${gameScore} clicks! 🎉`);
+// --- 2D Starfighter Vanguard Engine ---
+let spaceGameInterval = null;
+let spaceGameActive = false;
+let playerShip, lasers, enemies, stars, particleFX, gameScoreVal, waveLevel;
+let keysPressed = {};
+
+function startSpaceGame() {
+  const canvas = document.getElementById('arcade-canvas');
+  const overlay = document.getElementById('arcade-overlay');
+  
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  spaceGameActive = false;
+  if (spaceGameInterval) clearInterval(spaceGameInterval);
+  spaceGameInterval = null;
+  
+  gameScoreVal = 0;
+  waveLevel = 1;
+
+  playerShip = {
+    x: canvas.width / 2 - 22,
+    y: canvas.height - 65,
+    width: 44,
+    height: 32,
+    speed: 6.5
+  };
+
+  lasers = [];
+  enemies = [];
+  stars = [];
+  particleFX = [];
+
+  for (let i = 0; i < 80; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speed: Math.random() * 2 + 0.5
+    });
+  }
+
+  window.addEventListener('keydown', handleSpaceInput);
+  window.addEventListener('keyup', handleSpaceInput);
+
+  overlay.style.display = 'none';
+  spaceGameActive = true;
+
+  spaceGameInterval = setInterval(() => {
+    updateGameLogic(ctx, canvas);
+    renderGame(ctx, canvas);
+  }, 1000 / 60);
+}
+
+function handleSpaceInput(e) {
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyA', 'KeyD'].includes(e.code)) {
+    if (e.type === 'keydown') {
+        keysPressed[e.code] = true;
+        if (e.code === 'Space' && spaceGameActive) {
+            shootLaser();
+        }
+    } else {
+        keysPressed[e.code] = false;
     }
-  }, 1000);
+    e.preventDefault();
+  }
 }
 
-function clickTarget() {
-  if (!isGameActive) return;
-  gameScore++;
-  document.getElementById('game-score').innerText = gameScore;
+function shootLaser() {
+    lasers.push({
+        x: playerShip.x + playerShip.width / 2 - 3,
+        y: playerShip.y - 4,
+        width: 6,
+        height: 16,
+        speed: 14
+    });
+}
+
+function updateGameLogic(ctx, canvas) {
+  if (!spaceGameActive) return;
+
+  if ((keysPressed['ArrowLeft'] || keysPressed['KeyA']) && playerShip.x > 10) {
+    playerShip.x -= playerShip.speed;
+  }
+  if ((keysPressed['ArrowRight'] || keysPressed['KeyD']) && playerShip.x < canvas.width - playerShip.width - 10) {
+    playerShip.x += playerShip.speed;
+  }
+
+  for (let i = lasers.length - 1; i >= 0; i--) {
+    lasers[i].y -= lasers[i].speed;
+    if (lasers[i].y < -20) lasers.splice(i, 1);
+  }
+
+  stars.forEach(star => {
+    star.y += star.speed;
+    if (star.y > canvas.height) star.y = -5;
+  });
+
+  // Update particles
+  for (let i = particleFX.length - 1; i >= 0; i--) {
+    let p = particleFX[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particleFX.splice(i, 1);
+  }
+
+  spawnEnemies(canvas);
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    enemies[i].y += enemies[i].speed;
+    
+    // Player collision check
+    if (
+      playerShip.x < enemies[i].x + enemies[i].width &&
+      playerShip.x + playerShip.width > enemies[i].x &&
+      playerShip.y < enemies[i].y + enemies[i].height &&
+      playerShip.y + playerShip.height > enemies[i].y
+    ) {
+      endSpaceGame(canvas);
+      return;
+    }
+
+    // Laser collision check
+    let enemyDestroyed = false;
+    for (let j = lasers.length - 1; j >= 0; j--) {
+      if (
+        lasers[j].x < enemies[i].x + enemies[i].width &&
+        lasers[j].x + lasers[j].width > enemies[i].x &&
+        lasers[j].y < enemies[i].y + enemies[i].height &&
+        lasers[j].y + lasers[j].height > enemies[i].y
+      ) {
+        // Spawn particle explosion
+        for (let k = 0; k < 12; k++) {
+          particleFX.push({
+            x: enemies[i].x + enemies[i].width / 2,
+            y: enemies[i].y + enemies[i].height / 2,
+            vx: (Math.random() - 0.5) * 5,
+            vy: (Math.random() - 0.5) * 5,
+            life: 25,
+            color: Math.random() > 0.5 ? '#38bdf8' : '#f43f5e'
+          });
+        }
+
+        enemies.splice(i, 1);
+        lasers.splice(j, 1);
+        gameScoreVal += 150 * waveLevel;
+        enemyDestroyed = true;
+
+        if (gameScoreVal >= (waveLevel * waveLevel * 2500)) {
+          waveLevel++;
+        }
+        break;
+      }
+    }
+
+    if (!enemyDestroyed && enemies[i] && enemies[i].y > canvas.height + 30) {
+      enemies.splice(i, 1);
+    }
+  }
+}
+
+function renderGame(ctx, canvas) {
+  // Deep space background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bgGrad.addColorStop(0, '#030308');
+  bgGrad.addColorStop(1, '#0a0a1a');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw Stars
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+  stars.forEach(star => {
+    ctx.fillRect(star.x, star.y, star.size, star.size);
+  });
+
+  // Draw Particles
+  particleFX.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 3, 3);
+  });
+
+  // Draw High-Tech 2D Starfighter Ship
+  ctx.fillStyle = '#38bdf8';
+  ctx.beginPath();
+  ctx.moveTo(playerShip.x + playerShip.width / 2, playerShip.y);
+  ctx.lineTo(playerShip.x, playerShip.y + playerShip.height);
+  ctx.lineTo(playerShip.x + playerShip.width / 2, playerShip.y + playerShip.height - 8);
+  ctx.lineTo(playerShip.x + playerShip.width, playerShip.y + playerShip.height);
+  ctx.closePath();
+  ctx.fill();
+
+  // Ship glow core
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(playerShip.x + playerShip.width / 2 - 2, playerShip.y + 12, 4, 12);
+
+  // Engine exhaust thruster flame
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(playerShip.x + playerShip.width / 2 - 4, playerShip.y + playerShip.height, 8, 10 + Math.random() * 6);
+
+  // Draw Lasers (Glowing neon yellow)
+  ctx.fillStyle = '#facc15';
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#facc15';
+  lasers.forEach(laser => {
+    ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+  });
+  ctx.shadowBlur = 0; // reset shadow
+
+  // Draw Enemy Vanguard Craft
+  enemies.forEach(enemy => {
+    ctx.fillStyle = '#f43f5e';
+    ctx.beginPath();
+    ctx.moveTo(enemy.x + enemy.width / 2, enemy.y + enemy.height);
+    ctx.lineTo(enemy.x, enemy.y);
+    ctx.lineTo(enemy.x + enemy.width, enemy.y);
+    ctx.closePath();
+    ctx.fill();
+    // Core engine light
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(enemy.x + enemy.width / 2 - 3, enemy.y + 4, 6, 6);
+  });
+
+  // HUD Overlay info
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.font = '600 13px sans-serif';
+  ctx.fillText(`SCORE: ${gameScoreVal}`, 20, 30);
+  ctx.fillText(`WAVE: ${waveLevel}`, canvas.width - 90, 30);
+}
+
+function spawnEnemies(canvas) {
+  const maxEnemies = 4 + waveLevel * 2;
+  if (Math.random() < (0.025 + waveLevel * 0.005) && enemies.length < maxEnemies) {
+    const size = 36;
+    enemies.push({
+      x: Math.random() * (canvas.width - size - 20) + 10,
+      y: -size,
+      width: size,
+      height: size * 0.8,
+      speed: 1.6 + Math.random() * 1.4 + (waveLevel * 0.25)
+    });
+  }
+}
+
+function endSpaceGame(canvas) {
+  spaceGameActive = false;
+  clearInterval(spaceGameInterval);
+  window.removeEventListener('keydown', handleSpaceInput);
+  window.removeEventListener('keyup', handleSpaceInput);
+
+  const overlay = document.getElementById('arcade-overlay');
+  const desc = document.getElementById('arcade-overlay-desc');
+  const playBtn = document.getElementById('arcade-play-btn');
+
+  if (overlay && desc && playBtn) {
+    desc.innerText = `MISSION FAILED! (SCORE: ${gameScoreVal} | WAVES SURVIVED: ${waveLevel})`;
+    playBtn.innerText = "PLAY AGAIN 🔄";
+    overlay.style.display = 'flex';
+  }
 }
