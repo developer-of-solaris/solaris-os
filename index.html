@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SOLARIS OS — Personal AI Dashboard</title>
-  <link rel="stylesheet" href="style.css?v=5.0">
+  <meta name="description" content="SOLARIS OS is a next-generation glassmorphic productivity dashboard featuring a live AI assistant, pomodoro focus timer, task manager, lofi music radio, scratchpad, and arcade mini-games.">
+  <title>SOLARIS OS — Personal AI & Productivity Dashboard</title>
+  <link rel="stylesheet" href="style.css?v=6.0">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body id="app-body" class="bg-wallpaper-1">
@@ -21,6 +22,7 @@
     <header class="glass-panel nav-header">
       <div class="brand-logo">
         <h1>SOLARIS <span>OS</span></h1>
+        <p class="brand-subtitle">Next-Gen Productivity Suite</p>
       </div>
       
       <div class="nav-controls">
@@ -45,7 +47,7 @@
       </div>
     </header>
 
-    <!-- Main Grid Workspace (Expanded with Mini-Games) -->
+    <!-- Main Grid Workspace -->
     <main class="modules-grid">
 
       <!-- AI Assistant Card -->
@@ -103,7 +105,32 @@
         <div class="card-footer"><span class="action-link">Play Game →</span></div>
       </div>
 
+      <!-- Quick Scratchpad Card -->
+      <div class="glass-card module-card" onclick="openModal('notes-modal')">
+        <div class="card-header">
+          <div class="card-icon">📝</div>
+          <span class="card-badge">Scratchpad</span>
+        </div>
+        <h2>Quick Scratchpad</h2>
+        <p>Jot down temporary session notes that auto-save instantly.</p>
+        <div class="card-footer"><span class="action-link">Open Notes →</span></div>
+      </div>
+
     </main>
+
+    <!-- Group-Study Interactive Rating Bar Footer -->
+    <footer class="glass-panel rating-footer">
+      <div class="rating-text">⭐ Enjoying Solaris OS? Rate your experience:</div>
+      <div class="star-rating" id="star-container">
+        <span onclick="rateApp(1)">★</span>
+        <span onclick="rateApp(2)">★</span>
+        <span onclick="rateApp(3)">★</span>
+        <span onclick="rateApp(4)">★</span>
+        <span onclick="rateApp(5)">★</span>
+      </div>
+      <div id="rating-response" class="rating-feedback"></div>
+    </footer>
+
   </div>
 
   <!-- ================= MODALS ================= -->
@@ -206,7 +233,19 @@
     </div>
   </div>
 
-  <!-- 6. FAQ Modal -->
+  <!-- 6. Quick Scratchpad Modal -->
+  <div id="notes-modal" class="modal-overlay">
+    <div class="modal-content glass-panel modal-medium">
+      <div class="modal-top">
+        <h3>📝 Quick Scratchpad</h3>
+        <button class="close-btn" onclick="closeModal('notes-modal')">✕</button>
+      </div>
+      <textarea id="scratchpad-text" placeholder="Type your ideas, links, or study notes here..." oninput="saveNotes()" style="width: 100%; height: 250px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 12px; padding: 1rem; color: white; resize: none; outline: none; font-size: 0.95rem; line-height: 1.5;"></textarea>
+      <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted); text-align: right;" id="notes-status">Auto-saved to local storage ✓</div>
+    </div>
+  </div>
+
+  <!-- 7. FAQ Modal -->
   <div id="faq-modal" class="modal-overlay">
     <div class="modal-content glass-panel modal-medium" style="max-width: 650px;">
       <div class="modal-top">
@@ -217,7 +256,7 @@
         
         <div class="faq-item" style="background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
           <h4 style="color: #a855f7; margin-bottom: 0.3rem;">🌟 Why is Solaris OS so good?</h4>
-          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">Solaris OS combines a distraction-free glassmorphic workspace with real-time AI assistance, ambient focus music, mini-games, and productivity tools all in one browser tab.</p>
+          <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4;">Solaris OS combines a distraction-free glassmorphic workspace with real-time AI assistance, ambient focus music, scratchpad, interactive ratings, and mini-games all in one lightweight browser tab.</p>
         </div>
 
         <div class="faq-item" style="background: rgba(255,255,255,0.04); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">

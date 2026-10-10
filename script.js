@@ -1,6 +1,7 @@
-// --- SOLARIS OS Main Script ---
+// --- SOLARIS OS Main Engine ---
 
-const GEMINI_API_KEY = 'AQ.Ab8RN6KxHP-2h2d8Ze7HbwJKQqg3L8Yn94WAdYf55grxnnUEpw'; 
+// Fallback Key Container (Override by user prompt if empty/invalid)
+let GEMINI_API_KEY = '';
 
 // --- Wallpaper Manager ---
 let currentWallpaperIndex = 1;
@@ -76,6 +77,7 @@ async function sendChatMessage() {
 
   if (!userText) return;
 
+  // Render user message
   const userMsg = document.createElement('div');
   userMsg.className = 'message user';
   userMsg.innerText = userText;
@@ -84,18 +86,37 @@ async function sendChatMessage() {
   input.value = '';
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+  // Render temporary loading indicator
   const loadingMsg = document.createElement('div');
   loadingMsg.className = 'message ai';
   loadingMsg.innerText = 'Thinking... 💭';
   messagesContainer.appendChild(loadingMsg);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+  // Retrieve key or prompt visitor
+  let apiKey = GEMINI_API_KEY;
+  if (!apiKey || apiKey.includes('AQ.Ab8RN6')) {
+    apiKey = localStorage.getItem('SOLARIS_GEMINI_KEY');
+    if (!apiKey) {
+      apiKey = prompt('Please enter a valid Google Gemini API key:');
+      if (apiKey) localStorage.setItem('SOLARIS_GEMINI_KEY', apiKey.trim());
+    }
+  }
+
+  if (!apiKey) {
+    messagesContainer.removeChild(loadingMsg);
+    const err = document.createElement('div');
+    err.className = 'message ai';
+    err.innerText = 'API key required to run neural companion. Please re-open and enter a valid key.';
+    messagesContainer.appendChild(err);
+    return;
+  }
+
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': GEMINI_API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [{ parts: [{ text: userText }] }]
@@ -105,11 +126,15 @@ async function sendChatMessage() {
     const data = await response.json();
     messagesContainer.removeChild(loadingMsg);
 
-    let aiReply = "Hmm, I couldn't reach the AI model right now. Try again shortly! ✨";
+    let aiReply = "I couldn't generate a response. Please double check your API key status! ✨";
+    
     if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
       aiReply = data.candidates[0].content.parts[0].text;
     } else if (data.error) {
-      aiReply = `API Response: ${data.error.message}`;
+      aiReply = `API Error: ${data.error.message}`;
+      if (data.error.code === 400 || data.error.code === 403) {
+        localStorage.removeItem('SOLARIS_GEMINI_KEY');
+      }
     }
 
     const aiMsg = document.createElement('div');
@@ -119,10 +144,12 @@ async function sendChatMessage() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
   } catch (error) {
-    messagesContainer.removeChild(loadingMsg);
+    if (messagesContainer.contains(loadingMsg)) {
+      messagesContainer.removeChild(loadingMsg);
+    }
     const errorMsg = document.createElement('div');
     errorMsg.className = 'message ai';
-    errorMsg.innerText = "Network connection issue! Please check your internet. ⚠️";
+    errorMsg.innerText = "Network connection issue! Please check your connection or key setup. ⚠️";
     messagesContainer.appendChild(errorMsg);
   }
 }
@@ -134,7 +161,54 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') sendChatMessage();
     });
   }
+
+  // Load Scratchpad
+  const scratchpad = document.getElementById('scratchpad-text');
+  if (scratchpad) {
+    const savedNotes = localStorage.getItem('SOLARIS_NOTES');
+    if (savedNotes) scratchpad.value = savedNotes;
+  }
+
+  // Load Saved Rating
+  const savedRating = localStorage.getItem('SOLARIS_RATING');
+  if (savedRating) rateApp(parseInt(savedRating));
 });
+
+// --- Scratchpad Functions ---
+function saveNotes() {
+  const scratchpad = document.getElementById('scratchpad-text');
+  const status = document.getElementById('notes-status');
+  if (scratchpad) {
+    localStorage.setItem('SOLARIS_NOTES', scratchpad.value);
+    if (status) {
+      status.innerText = 'Saved ✓';
+      setTimeout(() => status.innerText = 'Auto-saved to local storage ✓', 1200);
+    }
+  }
+}
+
+// --- Star Rating Function ---
+function rateApp(rating) {
+  const stars = document.querySelectorAll('#star-container span');
+  const feedback = document.getElementById('rating-response');
+
+  stars.forEach((star, index) => {
+    if (index < rating) {
+      star.classList.add('active');
+    } else {
+      star.classList.remove('active');
+    }
+  });
+
+  if (feedback) {
+    if (rating === 5) {
+      feedback.innerText = 'Thank you! 5-star perfection! 🌟';
+    } else {
+      feedback.innerText = `Thanks for your ${rating}-star rating! ✨`;
+    }
+  }
+  localStorage.setItem('SOLARIS_RATING', rating);
+}
 
 // --- Calculator Logic ---
 let calcDisplayValue = '0';
