@@ -1,6 +1,5 @@
 // --- SOLARIS OS Main Engine ---
 
-// Fallback Key Container (Override by user prompt if empty/invalid)
 let GEMINI_API_KEY = '';
 
 // --- Wallpaper Manager ---
@@ -29,7 +28,7 @@ function uploadCustomBg(event) {
   }
 }
 
-// --- Lofi Beats Music Controller ---
+// --- Music & Audio Stream Controller ---
 let isMusicPlaying = false;
 
 function toggleMusic() {
@@ -40,15 +39,43 @@ function toggleMusic() {
   if (!isMusicPlaying) {
     audio.play().then(() => {
       isMusicPlaying = true;
-      if (btn) btn.innerText = '⏸ Pause Beats';
+      if (btn) btn.innerText = '⏸ Pause Music';
     }).catch(() => {
-      alert("Click anywhere on the page first to enable audio!");
+      alert("Click anywhere on the page first to enable audio playback!");
     });
   } else {
     audio.pause();
     isMusicPlaying = false;
-    if (btn) btn.innerText = '🎵 Play Lofi Beats';
+    if (btn) btn.innerText = '🎵 Play Music';
   }
+}
+
+function setCustomAudioUrl() {
+  const input = document.getElementById('custom-audio-url-input');
+  const statusMsg = document.getElementById('audio-status-msg');
+  const audio = document.getElementById('bg-audio');
+  const btn = document.getElementById('music-btn');
+
+  if (!input || !audio) return;
+  const newUrl = input.value.trim();
+
+  if (!newUrl) {
+    if (statusMsg) statusMsg.innerText = 'Please enter a valid audio stream URL.';
+    return;
+  }
+
+  audio.pause();
+  audio.src = newUrl;
+  audio.load();
+  isMusicPlaying = false;
+  if (btn) btn.innerText = '🎵 Play Music';
+
+  localStorage.setItem('SOLARIS_AUDIO_URL', newUrl);
+  if (statusMsg) statusMsg.innerText = 'Custom audio URL applied successfully! ✓';
+  
+  setTimeout(() => {
+    closeModal('music-url-modal');
+  }, 1000);
 }
 
 // --- Modal Controller ---
@@ -77,7 +104,6 @@ async function sendChatMessage() {
 
   if (!userText) return;
 
-  // Render user message
   const userMsg = document.createElement('div');
   userMsg.className = 'message user';
   userMsg.innerText = userText;
@@ -86,19 +112,17 @@ async function sendChatMessage() {
   input.value = '';
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-  // Render temporary loading indicator
   const loadingMsg = document.createElement('div');
   loadingMsg.className = 'message ai';
   loadingMsg.innerText = 'Thinking... 💭';
   messagesContainer.appendChild(loadingMsg);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-  // Retrieve key or prompt visitor
   let apiKey = GEMINI_API_KEY;
-  if (!apiKey || apiKey.includes('AQ.Ab8RN6')) {
+  if (!apiKey) {
     apiKey = localStorage.getItem('SOLARIS_GEMINI_KEY');
     if (!apiKey) {
-      apiKey = prompt('Please enter a valid Google Gemini API key:');
+      apiKey = prompt('Please enter your Google Gemini API key:');
       if (apiKey) localStorage.setItem('SOLARIS_GEMINI_KEY', apiKey.trim());
     }
   }
@@ -167,6 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (scratchpad) {
     const savedNotes = localStorage.getItem('SOLARIS_NOTES');
     if (savedNotes) scratchpad.value = savedNotes;
+  }
+
+  // Load Saved Audio URL if present
+  const savedAudioUrl = localStorage.getItem('SOLARIS_AUDIO_URL');
+  if (savedAudioUrl) {
+    const audio = document.getElementById('bg-audio');
+    if (audio) {
+      audio.src = savedAudioUrl;
+      audio.load();
+    }
   }
 
   // Load Saved Rating
